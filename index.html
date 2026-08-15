@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grocery List</title>
+<meta name="description" content="A receipt-paper checklist that works offline. Bring your own list.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" id="themeColor" content="#D6E9F9">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Grocery List">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/app.css">
+</head>
+<body>
+<a class="skip-link" href="#view">Skip to list</a>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="brand">
+      <h1 class="brand-title" id="brandTitle">Grocery List</h1>
+      <p class="brand-sub" id="brandSub">Nothing goes in the cart without a receipt.</p>
+    </div>
+
+    <nav class="views" id="views" aria-label="Sections">
+      <button type="button" class="view-tab" data-act="view" data-view="list" aria-current="page">List</button>
+      <button type="button" class="view-tab" data-act="view" data-view="aisles">Aisles</button>
+      <button type="button" class="view-tab" data-act="view" data-view="receipts">Receipts</button>
+      <button type="button" class="view-tab" data-act="view" data-view="you">You</button>
+    </nav>
+
+    <div class="counter" id="counter">
+      <span class="counter-label" id="counterLabel">In cart</span>
+      <span class="counter-value" id="counterValue">0 / 0</span>
+    </div>
+  </header>
+
+  <nav class="aisles no-bar" id="aisleNav" aria-label="Aisles"></nav>
+
+  <div class="strip" id="strip" hidden>
+    <span id="stripLeft"></span>
+    <span id="stripRight"></span>
+  </div>
+
+  <div class="toolbar" id="toolbar" hidden>
+    <label class="search">
+      <span class="visually-hidden">Search items</span>
+      <input type="search" id="search" placeholder="Search all aisles" autocomplete="off" enterkeyhint="search">
+    </label>
+    <button type="button" class="ghost-btn" id="hideDoneBtn" data-act="toggle-hide-done" aria-pressed="false">Hide ticked</button>
+  </div>
+
+  <main class="view" id="view" tabindex="-1"></main>
+
+  <footer class="tally" id="tally"></footer>
+</div>
+
+<div class="toast" id="toast" hidden>
+  <span class="toast-msg" id="toastMsg"></span>
+  <button type="button" class="toast-btn" id="toastBtn" hidden></button>
+</div>
+
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle" id="modalCard"></div>
+</div>
+
+<input type="file" id="fileInput" accept=".json,.md,.markdown,.txt,application/json,text/markdown,text/plain" hidden>
+<div class="drop-veil" id="dropVeil" hidden><span>Drop a list file to load it</span></div>
+
+<script src="./assets/default-list.js"></script>
+<script src="./assets/app.js"></script>
+</body>
+</html>

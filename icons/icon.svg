@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Checklist">
+  <rect width="512" height="512" fill="#D6E9F9"/>
+  <rect x="96" y="64" width="320" height="384" fill="#FFFFFF" stroke="#4E93DC" stroke-width="16"/>
+  <g stroke="#4E93DC" stroke-width="14" fill="none">
+    <rect x="136" y="140" width="44" height="44"/>
+    <rect x="136" y="234" width="44" height="44"/>
+    <rect x="136" y="328" width="44" height="44"/>
+  </g>
+  <path d="M142 162 l14 16 30 -36" stroke="#3E8E5A" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M142 256 l14 16 30 -36" stroke="#3E8E5A" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#4E93DC">
+    <rect x="208" y="152" width="168" height="18"/>
+    <rect x="208" y="246" width="168" height="18"/>
+    <rect x="208" y="340" width="112" height="18"/>
+  </g>
+</svg>

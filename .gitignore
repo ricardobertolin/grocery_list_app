@@ -1,0 +1,4 @@
+# Exported/backup lists — these hold personal data, keep them out of the repo.
+*.json
+
+# manifest.webmanifest is intentionally not a .json file so it stays tracked.
