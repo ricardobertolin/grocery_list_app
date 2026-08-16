@@ -9,8 +9,13 @@ your browser, and travels as a file you save and load yourself.
 
 ## Use
 
-- Tap a row to tick it. Ticking stamps today's date; unticking clears it.
-- `···` on a row edits the text, changes the date, or deletes it.
+- Tap a row to tick it. Ticking stamps today's date; unticking clears it. The
+  page stays exactly where it was.
+- `···` opens a row. From there you can edit the text, set the date, move it
+  (`↑` `↓` one place, `⤒` `⤓` to either end of the section), **highlight** it, or
+  delete it. Text you have typed is kept when you move or highlight.
+- Highlighted items get a star and an accent bar, and stay highlighted through
+  saves, loads, and Markdown round-trips.
 - **List** — the active section. **Aisles** — all sections with progress, plus
   add / rename / delete. **Receipts** — everything ticked, newest month first.
   **You** — stats, title and wording, and all the file operations.
@@ -57,6 +62,10 @@ a custom domain.
 
 After changing any precached file, bump `CACHE` in `sw.js` so installed copies
 pick it up; the app shows a "new version is ready" toast with a Reload button.
+Bump `APP_VERSION` in `assets/app.js` at the same time — the bottom of the You
+tab reports the app version, the save-format version, and the cache actually
+serving the installed copy, which is how you tell a stale install apart from a
+current one.
 
 ## Files
 

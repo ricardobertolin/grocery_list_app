@@ -4,6 +4,7 @@
 (function () {
   'use strict';
 
+  var APP_VERSION = '1.2.0';
   var STORE_KEY = 'lifelist.v1';
   var PREFS_KEY = 'lifelist.prefs.v1';
   var FORMAT = 'lifelist';
@@ -87,7 +88,8 @@
       id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
       title: String(raw.title == null ? '' : raw.title).trim(),
       done: !!raw.done || !!date && raw.done !== false,
-      date: date
+      date: date,
+      highlight: !!raw.highlight
     };
   }
 
@@ -245,6 +247,7 @@
       c.items.forEach(function (it) {
         var line = '- [' + (it.done ? 'x' : ' ') + '] ' + it.title;
         if (it.done && it.date) line += ' <!-- ' + it.date + ' -->';
+        if (it.highlight) line += ' <!-- highlight -->';
         out.push(line);
       });
       out.push('');
@@ -289,15 +292,26 @@
         }
         var body = task[2].trim();
         var date = null;
-        var dm = /\s*<!--\s*(\d{4}-\d{2}(?:-\d{2})?)\s*-->\s*$/.exec(body);
-        if (dm) { date = dm[1]; body = body.slice(0, dm.index).trim(); }
-        body = body.replace(/\s*<!--[\s\S]*?-->\s*$/, '').trim();
+        var highlight = false;
+
+        // Trailing HTML comments carry the metadata, in any order.
+        for (;;) {
+          var cm = /\s*<!--\s*([\s\S]*?)\s*-->\s*$/.exec(body);
+          if (!cm) break;
+          var token = cm[1].trim();
+          if (/^\d{4}-\d{2}(-\d{2})?$/.test(token)) date = token;
+          else if (/^(highlight|starred|star|★)$/i.test(token)) highlight = true;
+          body = body.slice(0, cm.index).trim();
+        }
         if (!body) return;
+
+        var ticked = task[1].toLowerCase() === 'x';
         current.items.push({
           id: uid(),
           title: body,
-          done: task[1].toLowerCase() === 'x',
-          date: task[1].toLowerCase() === 'x' ? date : null
+          done: ticked,
+          date: ticked ? date : null,
+          highlight: highlight
         });
         return;
       }
@@ -471,13 +485,47 @@
     render();
   }
 
-  function updateItem(id, title, date, done) {
+  /** Applies the edit form's fields to the item. A date implies done; clearing
+      it leaves a dateless done item alone, since the row itself unticks. */
+  function applyEdit(id, title, date) {
+    var f = findItem(id);
+    if (!f) return null;
+    f.item.title = String(title || '').trim() || f.item.title;
+    f.item.date = date || null;
+    if (date) f.item.done = true;
+    return f;
+  }
+
+  function updateItem(id, title, date) {
+    if (!applyEdit(id, title, date)) return;
+    state.editing = null;
+    save();
+    render();
+  }
+
+  /** Keeps text typed into the open edit form when a button re-renders it. */
+  function syncOpenEdit() {
+    var form = document.querySelector('form[data-act="save-item"]');
+    if (!form) return;
+    applyEdit(form.dataset.id, form.elements.title.value, form.elements.date.value);
+  }
+
+  /** delta of -1/+1 steps one place; Infinity moves to an end. */
+  function moveItem(id, delta) {
     var f = findItem(id);
     if (!f) return;
-    f.item.title = String(title || '').trim() || f.item.title;
-    f.item.done = !!done;
-    f.item.date = done && date ? date : null;
-    state.editing = null;
+    var arr = f.cat.items;
+    var to = delta === Infinity ? arr.length - 1 : (delta === -Infinity ? 0 : f.ii + delta);
+    if (to < 0 || to > arr.length - 1 || to === f.ii) return;
+    arr.splice(to, 0, arr.splice(f.ii, 1)[0]);
+    save();
+    render();
+  }
+
+  function toggleHighlight(id) {
+    var f = findItem(id);
+    if (!f) return;
+    f.item.highlight = !f.item.highlight;
     save();
     render();
   }
@@ -562,6 +610,7 @@
 
   function render() {
     clampCat();
+    var scrollY = window.scrollY;
     var L = state.list.labels;
     var t = totals();
 
@@ -592,7 +641,7 @@
     if (state.view === 'list') view.innerHTML = renderList();
     else if (state.view === 'aisles') view.innerHTML = renderAisles();
     else if (state.view === 'receipts') view.innerHTML = renderReceipts();
-    else view.innerHTML = renderYou();
+    else { view.innerHTML = renderYou(); fillCacheVersion(); }
 
     $('tally').innerHTML =
       '<span>' + esc(L.groups) + ' ' + state.list.categories.length + '</span>' +
@@ -601,7 +650,12 @@
       '<span>' + t.pct + '%</span>';
 
     var af = document.querySelector('[data-autofocus]');
-    if (af) af.focus();
+    if (af) af.focus({ preventScroll: true });
+
+    // Replacing the view's markup resets the scroll position; put it back so
+    // ticking an item leaves you exactly where you were. View switches call
+    // scrollTo after render() and so still start at the top.
+    if (window.scrollY !== scrollY) window.scrollTo(0, scrollY);
   }
 
   function renderAisleNav() {
@@ -610,10 +664,17 @@
         'aria-pressed="' + (i === state.cat) + '">' + esc(c.name) +
         '<span class="chip-count">' + countDone(c) + '/' + c.items.length + '</span></button>';
     }).join('');
-    $('aisleNav').innerHTML = html;
-    var active = $('aisleNav').querySelector('[aria-pressed="true"]');
-    if (active && active.scrollIntoView) {
-      active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    var nav = $('aisleNav');
+    nav.innerHTML = html;
+
+    // Keep the active chip in view by scrolling the strip itself. scrollIntoView
+    // would also scroll the page, which yanked the list on every tick.
+    var active = nav.querySelector('[aria-pressed="true"]');
+    if (active) {
+      var left = active.offsetLeft;
+      var right = left + active.offsetWidth;
+      if (left < nav.scrollLeft) nav.scrollLeft = Math.max(0, left - 8);
+      else if (right > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = right - nav.clientWidth + 8;
     }
   }
 
@@ -626,12 +687,15 @@
     } else if (catName) {
       meta = '<span class="row-meta muted">' + esc(catName) + '</span>';
     }
-    return '<div class="row">' +
+    return '<div class="row' + (item.highlight ? ' is-highlighted' : '') + '">' +
       '<button type="button" class="row-main" data-act="toggle" data-id="' + item.id + '" aria-pressed="' + item.done + '">' +
         '<span class="row-num">' + (index == null ? '' : pad(index + 1)) + '</span>' +
         '<span class="mark" aria-hidden="true">' + (item.done ? '✓' : '') + '</span>' +
         '<span class="row-body">' +
-          '<span class="row-title">' + esc(item.title) + '</span>' + meta +
+          '<span class="row-title">' +
+            (item.highlight ? '<span class="star" aria-label="Highlighted">★</span> ' : '') +
+            esc(item.title) +
+          '</span>' + meta +
         '</span>' +
       '</button>' +
       '<button type="button" class="row-menu" data-act="edit" data-id="' + item.id + '" ' +
@@ -640,12 +704,29 @@
   }
 
   function editForm(item) {
-    return '<form class="inline-form" data-act="save-item" data-id="' + item.id + '">' +
+    var f = findItem(item.id);
+    var first = f && f.ii === 0;
+    var last = f && f.ii === f.cat.items.length - 1;
+    var id = item.id;
+
+    return '<form class="inline-form is-editing" data-act="save-item" data-id="' + id + '">' +
       '<input type="text" name="title" value="' + esc(item.title) + '" aria-label="Item text" data-autofocus>' +
       '<input type="date" name="date" value="' + esc(item.date && item.date.length === 10 ? item.date : (item.date ? item.date + '-01' : '')) + '" aria-label="Date completed">' +
+      '<span class="move-group">' +
+        '<button type="button" class="btn secondary icon" data-act="move" data-id="' + id + '" data-delta="-1"' +
+          (first ? ' disabled' : '') + ' aria-label="Move up" title="Move up">↑</button>' +
+        '<button type="button" class="btn secondary icon" data-act="move" data-id="' + id + '" data-delta="1"' +
+          (last ? ' disabled' : '') + ' aria-label="Move down" title="Move down">↓</button>' +
+        '<button type="button" class="btn secondary icon" data-act="move" data-id="' + id + '" data-delta="top"' +
+          (first ? ' disabled' : '') + ' aria-label="Move to top" title="Move to top">⤒</button>' +
+        '<button type="button" class="btn secondary icon" data-act="move" data-id="' + id + '" data-delta="bottom"' +
+          (last ? ' disabled' : '') + ' aria-label="Move to bottom" title="Move to bottom">⤓</button>' +
+      '</span>' +
+      '<button type="button" class="btn secondary star-btn" data-act="highlight" data-id="' + id + '" ' +
+        'aria-pressed="' + !!item.highlight + '">' + (item.highlight ? '★ Highlighted' : '☆ Highlight') + '</button>' +
       '<button type="submit" class="btn">Save</button>' +
       '<button type="button" class="btn secondary" data-act="cancel-edit">Cancel</button>' +
-      '<button type="button" class="btn danger" data-act="delete-item" data-id="' + item.id + '">Delete</button>' +
+      '<button type="button" class="btn danger" data-act="delete-item" data-id="' + id + '">Delete</button>' +
     '</form>';
   }
 
@@ -827,7 +908,30 @@
 
       '<div class="section-head"><span>About</span></div>' +
       '<p class="note">Offline-capable. Ticking an item stamps today’s date, which is what fills the Receipts tab. ' +
-        'Last saved ' + esc(formatDate(String(state.list.updated || '').slice(0, 10)) || '—') + '.</p>';
+        'Open an item with <code>···</code> to reorder or highlight it. ' +
+        'Last saved ' + esc(formatDate(String(state.list.updated || '').slice(0, 10)) || '—') + '.</p>' +
+
+      '<dl class="version">' +
+        '<div><dt>App</dt><dd>v' + APP_VERSION + '</dd></div>' +
+        '<div><dt>Save format</dt><dd>' + FORMAT + ' v' + VERSION + '</dd></div>' +
+        '<div><dt>Offline cache</dt><dd id="swVersion">—</dd></div>' +
+      '</dl>';
+  }
+
+  /** Names the cache the offline copy is actually served from, so it is
+      obvious when an installed copy is still on an older build. */
+  function fillCacheVersion() {
+    var el = $('swVersion');
+    if (!el) return;
+    if (!('caches' in window)) { el.textContent = 'unavailable'; return; }
+    caches.keys().then(function (keys) {
+      var mine = keys.filter(function (k) { return k.indexOf('lifelist-') === 0; });
+      var target = $('swVersion');
+      if (target) target.textContent = mine.length ? mine.join(', ') : 'not installed';
+    }).catch(function () {
+      var target = $('swVersion');
+      if (target) target.textContent = 'unavailable';
+    });
   }
 
   function themeBtn(value, label) {
@@ -925,6 +1029,17 @@
       case 'delete-item':
         deleteItem(btn.dataset.id);
         break;
+      case 'move': {
+        syncOpenEdit();
+        var d = btn.dataset.delta;
+        moveItem(btn.dataset.id,
+          d === 'top' ? -Infinity : d === 'bottom' ? Infinity : Number(d));
+        break;
+      }
+      case 'highlight':
+        syncOpenEdit();
+        toggleHighlight(btn.dataset.id);
+        break;
       case 'start-add':
         state.adding = true;
         render();
@@ -994,8 +1109,7 @@
     } else if (form.dataset.act === 'add-cat') {
       addCategory(data.get('name'));
     } else if (form.dataset.act === 'save-item') {
-      var date = String(data.get('date') || '');
-      updateItem(form.dataset.id, data.get('title'), date, !!date);
+      updateItem(form.dataset.id, data.get('title'), String(data.get('date') || ''));
     } else if (form.dataset.act === 'save-meta') {
       state.list.title = String(data.get('title') || '').trim() || state.list.title;
       state.list.subtitle = String(data.get('subtitle') || '').trim();

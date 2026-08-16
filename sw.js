@@ -1,5 +1,5 @@
 /* Offline shell. Bump CACHE when any precached file changes. */
-var CACHE = 'lifelist-v1';
+var CACHE = 'lifelist-v2';
 
 var SHELL = [
   './',

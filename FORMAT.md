@@ -28,7 +28,7 @@ key `lifelist.v1`.
       "note": "Optional line shown above the section.",
       "items": [
         { "title": "Sub-20 second Rubik's Cube", "done": true, "date": "2019-03-14" },
-        { "title": "Memorize 1000 digits of pi", "done": false }
+        { "title": "Memorize 1000 digits of pi", "done": false, "highlight": true }
       ]
     }
   ]
@@ -46,7 +46,10 @@ key `lifelist.v1`.
 | `categories[].items[]` | yes | A string is accepted as shorthand for `{ "title": … }`. |
 | `items[].done` | no | Boolean. |
 | `items[].date` | no | `YYYY-MM` or `YYYY-MM-DD`. A date implies `done` unless `done: false`. |
+| `items[].highlight` | no | Boolean. Marks the item with a star and an accent bar. |
 | `items[].id` | no | Generated if absent. |
+
+Item order within a section is meaningful and is preserved exactly as written.
 
 Empty-titled items are dropped on load. A file with no sections is rejected with
 an error rather than wiping your list.
@@ -65,7 +68,7 @@ loads without any conversion.
 ## Mind and skill
 
 - [x] Sub-20 second Rubik's Cube <!-- 2019-03-14 -->
-- [ ] Memorize 1000 digits of pi
+- [ ] Memorize 1000 digits of pi <!-- highlight -->
 
 ## Strength and physical
 
@@ -79,9 +82,11 @@ Parsing rules:
 - `# Heading` → list title (first one wins). `> line` before any section → subtitle.
 - `## Heading` (through `######`) → a new section.
 - `- [ ]` / `- [x]` → an item. `*` and `+` bullets work too; `[X]` is fine.
-- A trailing `<!-- 2024-06-09 -->` on a ticked line is its completion date.
-  Month precision (`<!-- 2024-06 -->`) is also accepted. Comments render as
-  nothing in any Markdown viewer, so the file still reads cleanly on GitHub.
+- Trailing HTML comments carry metadata, in any order and any number:
+  `<!-- 2024-06-09 -->` is the completion date of a ticked line (month
+  precision, `<!-- 2024-06 -->`, also works), and `<!-- highlight -->` stars the
+  item. Comments render as nothing in any Markdown viewer, so the file still
+  reads cleanly on GitHub. Unrecognised comments are ignored.
 - The `<!-- lifelist labels: … -->` line carries the vocabulary. Delete it and
   the grocery defaults apply.
 - A plain `- bullet` with no checkbox becomes an unticked item.

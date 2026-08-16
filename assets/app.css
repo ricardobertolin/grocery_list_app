@@ -350,6 +350,18 @@ button, input, textarea, select { font: inherit; color: inherit; }
 }
 .row:hover { background: var(--wash); }
 
+.row.is-highlighted {
+  background: var(--wash); /* fallback for browsers without color-mix */
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.row.is-highlighted:hover { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.row.is-highlighted .row-main { padding-left: 10px; }
+.row.is-highlighted .row-title { color: var(--accent); }
+.row.is-highlighted .row-main[aria-pressed="true"] .row-title { color: var(--faint); }
+
+.star { color: var(--accent); font-size: 12px; }
+
 .row-main {
   flex: 1;
   min-width: 0;
@@ -484,6 +496,29 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .btn:hover { filter: brightness(1.06); }
 .btn.secondary { background: transparent; color: var(--ink-hi); }
 .btn.danger { background: transparent; border-color: var(--warn); color: var(--warn); }
+.btn[disabled] { opacity: 0.35; cursor: not-allowed; }
+.btn[disabled]:hover { filter: none; }
+
+.btn.icon {
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0;
+  min-width: 38px;
+}
+
+.move-group { display: inline-flex; gap: 4px; }
+
+.star-btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.inline-form.is-editing {
+  gap: 6px;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid var(--rule);
+}
 
 .add-row {
   margin-top: 6px;
@@ -639,6 +674,20 @@ button, input, textarea, select { font: inherit; color: inherit; }
   padding: 1px 4px;
   border: 1px solid var(--line);
 }
+
+.version {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px dotted var(--line);
+  display: grid;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+.version > div { display: flex; gap: 10px; justify-content: space-between; }
+.version dt { letter-spacing: 0.1em; text-transform: uppercase; font-size: 9.5px; align-self: center; }
+.version dd { margin: 0; overflow-wrap: anywhere; text-align: right; }
 
 /* ── Tally ─────────────────────────────────────────────────────── */
 
